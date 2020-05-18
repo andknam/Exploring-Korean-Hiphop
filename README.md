@@ -1,4 +1,4 @@
-# Exploring Korean Hiphop Music!
+# Exploring Korean Hip hop Music!
 Inspired by https://hiphopology.xyz, this respository contains a genius lyrics scraper that extracts artist verses from songs (meaning lyrics in choruses, bridges, hooks, etc. are ignored). Verse lyrics are separated by language into English, Korean, and Korean-English (English words with trailing Korean characters). 
 
 **In the works:**
