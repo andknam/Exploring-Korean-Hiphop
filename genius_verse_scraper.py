@@ -196,12 +196,3 @@ for i in range(num_songs):
             info.append((title, split_verse_lyrics))
 
 artist_dict[album_name] = info
-
-
-
-
-
-
-
-    
-
