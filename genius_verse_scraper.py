@@ -8,41 +8,39 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import re
+import csv
 
 base_url = 'https://genius.com/api/page_data/album?page_path=%2Falbums%2F'
 
 #must follow convention from website url 
 #i.e. 'https://genius.com/albums/Jay-park/Everything-you-wanted'
-artist = 'Jay-park'
-album_name = 'Everything-you-wanted'
-num_songs = 19 #num of songs to scrape from tracklist
+artist = 'Giriboy'
+album_name = 'Thank-you'
+num_songs = 5 #num of songs to scrape from tracklist
 
 complete_url = base_url + artist + '%2F' + album_name
-
 response = requests.get(complete_url)
-
 json = response.json()
 
 artist_dict = {}
 info = []
-
 #finds the verse identifier in the lyrics
 def find_verse_id_start(lyrics, search_start, song_end):
-    starters = ['[Verse', '(Verse']
+    starters = ['[Verse', '(Verse', 'Verse', '[Tiger JK']
         
-    for i in range(len(starters)):
-        index = lyrics.find(starters[i], search_start, song_end)
+    for starter in starters:
+        index = lyrics.find(starter, search_start, song_end)
         if index != -1:
             return index
         
     return -1 #no more verses to find
-   
+
 #finds the verse identifier ending
 def find_verse_id_end(lyrics, verse_start, song_end):
     endings = [']', ')']
     
-    for i in range(len(endings)):
-        index = lyrics.find(endings[i], verse_start + 1, song_end)
+    for ending in endings:
+        index = lyrics.find(ending, verse_start + 1, song_end)
         if index != -1:
             return index
    
@@ -52,8 +50,8 @@ def find_verse_end(lyrics, verse_index, song_end):
     
     if verse_end == -1:
         other_id= ['Hook', 'Chorus', 'Bridge', 'Verse']
-        for i in range(len(other_id)):
-            verse_end = lyrics.find(other_id[i], verse_index + 1, song_end)
+        for other in other_id:
+            verse_end = lyrics.find(other, verse_index + 1, song_end)
             if verse_end != -1:
                 return verse_end
     else:
@@ -69,20 +67,21 @@ def scrape_lyrics(url):
     song_end = len(lyrics)
 
     #ignore appended english or romanization versions
-    stop = ['English (Translated)', 'Romanization']
+    yet_transcribed = 'The lyrics for this song have yet to be transcribed.'
+    yet_released = 'Lyrics for this song have yet to be released.'
+    stoppers = ['English (Translated)', 'Romanization', yet_transcribed,
+                yet_released]
     stop_scrape = 0
     has_stop = False
     
-    for i in range(len(stop)):
-        if stop[i] in lyrics:
-            stop_scrape = lyrics.find(stop[i], 0, song_end)
+    for stop in stoppers:
+        if stop in lyrics:
+            stop_scrape = lyrics.find(stop, 0, song_end)
             
     verse_lyrics = []
     identifiers = []
-    
     search_start = 0
     for verse in lyrics:
-        
         verse_id_start = find_verse_id_start(lyrics, search_start, song_end)
         
         if verse_id_start != -1 and has_stop == False:
@@ -98,14 +97,12 @@ def scrape_lyrics(url):
                 joined = identifier.replace(' ', '').lower()
                 artist_name = artist.replace('-', '').lower()
                 if artist_name not in joined:
-                    add_verse = False
-                    
+                    add_verse = False   
             if add_verse:
                 if identifier not in identifiers:
                     identifiers.append(identifier)
                     verse = lyrics[verse_id_start:verse_end]
                     verse_lyrics.append(verse)
-            
             if stop_scrape != 0:
                 if search_start > stop_scrape:
                     has_stop = True
@@ -119,7 +116,6 @@ def separate_languages(lyrics):
     for verse in lyrics:
         #remove verse identifiers
         verse = re.sub(r'[\(\[].*?[\)\]]', '', verse)
-        
         #remove empty lines
         verse = os.linesep.join([s for s in verse.splitlines() if s]) 
         verse = verse.splitlines()
@@ -127,7 +123,6 @@ def separate_languages(lyrics):
         eng = []
         kor = []
         konglish = [] #korean-english lyrics
-        
         for line in verse:
             eng_words = []
             kor_words = []
@@ -136,7 +131,6 @@ def separate_languages(lyrics):
             for elem in string_split: 
                 eng_sep_char = []
                 kor_sep_char = []
-                
                 #english
                 if re.search('[A-Za-z]', elem) != None:
                     for char in elem:
@@ -149,41 +143,61 @@ def separate_languages(lyrics):
                     kor_word = ''.join(char for char in kor_sep_char)
                     
                     eng_words.append(eng_word)
-                    
                     #if korean characters trail english word
                     if(len(kor_word) != 0):
                         konglish.append(elem)
-
                 #korean
                 else:
                     kor_words.append(elem)
-        
             #keep english word and korean word spacing
             eng_line = ' '.join(word for word in eng_words)
             kor_line = ' '.join(word for word in kor_words)
-        
             eng.append(eng_line)
             kor.append(kor_line)
-    
         #remove empty strings from both 
         eng = [a for a in eng if a]
         kor = [a for a in kor if a]
     
         split_verse_lyrics.append((eng, kor, konglish))
         
-    return split_verse_lyrics
-  
+    return split_verse_lyrics    
+
+#write information from artist_dict to a csv file
+def update_csv_file():
+    file = 'genius_korean_hip_hop_lyrics.csv'
+    with open(file, 'w', newline = '', encoding = 'utf-8') as file:
+        a = csv.writer(file)
+        headers = ['artist', 'album_name', 'title', 'verse_num', 'eng', 'kor', 
+                   'kor-eng']	
+        a.writerow(headers)
+        songs = artist_dict[album_name]
+        for song in songs:
+            title = song[0]
+            verse = song[1]
+                
+            verse_num = 1
+            for lang in verse:
+                eng = lang[0]
+                kor = lang[1]
+                kor_eng = lang[2]
+                
+                row = [artist, album_name, title, verse_num, eng, kor, 
+                       kor_eng]
+                a.writerow(row)
+                verse_num += 1
+                
 #for set number of songs in album      
 for i in range(num_songs):
     
     base_json = json['response']['page_data']['album_appearances'][i]['song']
     excluded_terms = ['REMIX', 'Remix', 'remix', 'Cypher', 'cypher', '(Live)',
-                      '(E)']
+                      '(E)', 'R&B Version', 'Acoustic Version', 'inst',
+                      'Electronic Version', 'Japanese Version', 'Bonus Track']
     title = base_json['title']
         
     ignore = False
-    for i in range(len(excluded_terms)):
-        contains_excluded = title.find(excluded_terms[i])
+    for term in excluded_terms:
+        contains_excluded = title.find(term)
         if contains_excluded != -1:
             ignore = True
     
