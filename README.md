@@ -7,5 +7,6 @@ Inspired by https://hiphopology.xyz, this respository contains a genius lyrics s
 - [ ] Statistics such as unique word percentage, verses per album, words per verse, English vs Korean usage
 
 **Things in consideration:**
-- [ ] Korean word clouds, song topic analysis, statistic for most used adlib, English and Korean verse line syntax trees
+- [x] (2 added 5/28/2020) Korean word clouds
+- [ ]song topic analysis, statistic for most used adlib, English and Korean verse line syntax trees
 - [ ] Website to showcase all results and statistics
