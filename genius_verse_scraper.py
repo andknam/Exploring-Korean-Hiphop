@@ -122,7 +122,7 @@ def separate_languages(lyrics):
         
         eng = []
         kor = []
-        konglish = [] #korean-english lyrics
+        konglish = [] #english-korean lyrics
         for line in verse:
             eng_words = []
             kor_words = []
